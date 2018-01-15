@@ -1,0 +1,3 @@
+Login Sign in with name {User}
+Logout Sign off with name {User}
+ReturnNoticeIntent Read my notice 

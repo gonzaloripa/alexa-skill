@@ -1,0 +1,34 @@
+{
+  "intents": [
+    {
+      "intent": "AMAZON.CancelIntent"
+    },
+    {
+      "intent": "AMAZON.HelpIntent"
+    },
+    {
+      "intent": "AMAZON.StopIntent"
+    },
+    {
+      "slots": [
+        {
+          "name": "User",
+          "type": "LIST_OF_NAMES"
+        }
+      ],
+      "intent": "Login"
+    },
+    {
+      "slots": [
+        {
+          "name": "User",
+          "type": "LIST_OF_NAMES"
+        }
+      ],
+      "intent": "Logout"
+    },
+    {
+      "intent": "ReturnNoticeIntent"
+    }
+  ]
+}
