@@ -70,9 +70,7 @@ var handlers = {
     'DialogIntent':function(){
         //this.event.request.dialogState --->current dialog state
         /* 
-        const intentObj = this.event.request.intent; --->the intent object represents the intent sent to the skill 
-
-        Hasta ahora no le veo sentido usar un delegate dialog para obtener los slots ya que solo se necesita que pase el nombre.
+        const intentObj = this.event.request.intent; --->the intent object represents the intent sent to the skill
 
         */
     },
