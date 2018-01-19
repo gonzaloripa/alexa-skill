@@ -67,14 +67,18 @@ var handlers = {
         //onSessionEnded(this.event.request, this.event.session);
         this.emit(':tell','Goodbye!');
     },
-    'ReturnNoticeIntent': function () {
-        this.emit('Read');
-    },
     'DialogIntent':function(){
+        //this.event.request.dialogState --->current dialog state
+        /* 
+        const intentObj = this.event.request.intent; --->the intent object represents the intent sent to the skill 
 
+        Hasta ahora no le veo sentido usar un delegate dialog para obtener los slots ya que solo se necesita que pase el nombre.
+
+        */
     },
     'Register': function(){
         //var myThis = this;
+        const intentObj = this.event.request.intent; //the intent object represents the intent sent to the skill 
         var slotValue = this.event.request.intent.slots.User.value;//Obtengo el usuario
         func_db.busqueda_usuario(slotValue,this.event.session.user.userId,(username)=>{
 
@@ -89,24 +93,29 @@ var handlers = {
     },
     'Login': function(){
         //var myThis = this;
-        var slotValue = this.event.request.intent.slots.User.value;//Obtengo el usuario
-        if(!this.attributes['logueado']){ //Si no ingresó nadie todavia
-            func_db.busqueda_usuario(slotValue,this.event.session.user.userId,(username)=>{ //CAMBIAR!!!
-                if(username != null){//Si ya está registrado en la base        
-                    this.attributes['logueado']= slotValue; //Se loguea: Asigna a prop.'logueado' de attributes de session el usuario del slot
-                    this.emit(':tell', "Hello "+ this.attributes['logueado']+"! Now, you can get your content");
-                }
-                else{
-                    this.emit(':tell', "Sorry, there is no registered user with the name "+ slotValue +". Please, log in with a valid username");
-                }
-            });
-        }
-        else{
-            this.emit(':tell', "Sorry, you can not login because the user "+ this.attributes['logueado']+" is already active in the system");
-        }
+        obtainSlotValue(this,(objectIntent)=>{ //Funcion helper
+            var slotValue = objectIntent.slots.User.value;//Obtengo el nombre dado por el usuario
+            
+            if(!this.attributes['logueado']){ //Si no ingresó nadie todavia
+                func_db.busqueda_usuario(slotValue,this.event.session.user.userId,(username)=>{//Voy a buscar el user a la base 
+                    if(username != null){//Si el user ya está registrado en la base        
+                        this.attributes['logueado']= slotValue; //Se loguea: Asigna a prop.'logueado' de attributes de session el valor del slot(user)
+                        this.emit(':tell', "Hello "+ this.attributes['logueado']+"! Now, you can get your content");
+                    }
+                    else{
+                        this.emit(':tell', "Sorry, there is no registered user with the name "+ slotValue +". Please, log in with a valid username");
+                    }
+                });
+            }
+            else{
+                this.emit(':tell', "Sorry, you can not login because the user "+ this.attributes['logueado']+" is already active in the system");
+            }
+        });
     },
     'Logout': function(){
-        var slotValue = this.event.request.intent.slots.User.value;//Obtengo el usuario
+        obtainSlotValue(this,(objectIntent)=>{ //Funcion que se encarga de obtener el slot si el usuario no lo incluye en el request
+            var slotValue = objectIntent.slots.User.value;//Obtengo el nombre dado por el usuario
+            
             if(this.attributes['logueado'] == slotValue){ //Si existe un usuario activo con el nombre del slotValue
                 this.attributes['logueado']= ""; //Inicializa a prop.'logueado' de attributes de session 
                 this.emit(':tell', "Goodbye "+ slotValue+". See you later!");
@@ -117,6 +126,7 @@ var handlers = {
             else{
                 this.emit(':tell', "Sorry, you can not close the session. Please enter a correct username. The active user in the system is " + this.attributes['logueado']);
             }
+        });
     },
     'Read':function(){
         //var myThis = this;
@@ -169,6 +179,20 @@ function onSessionEnded(sessionEndedRequest, session) {
 
 
 // --------------- Functions that control the skill's behavior -----------------------
+
+//Funcion que se encarga de obtener el slot si el usuario no lo incluye en el request
+function obtainSlotValue(callback){
+    const intentObj = this.event.request.intent; //the intent object represents the intent sent to the skill 
+    if(!intentObj.slots.User.value){ //Si no incluyó su nombre dentro del request
+        var slotToElicit = 'User';
+        var speechOutput = 'Which is your username?';
+        var repromptSpeech = 'Please say your username';
+        this.emit(':elicitSlot', slotToElicit, speechOutput, repromptSpeech);
+
+    }else{
+        callback(intentObj);
+    }
+}
 
 function getNoticeResponse(url,clase,callback) {
     
