@@ -64,6 +64,14 @@ var handlers = {
         .listen('Say yes to start or no to quit.');
         this.emit(':responseReady');
     },
+    'AMAZON.YesIntent': function(){
+        this.response.speak('Great! Please try to saying the utterance for login in the system')
+        .listen('Please say: sign in with name');
+        this.emit(':responseReady');
+    },
+    'AMAZON.NoIntent': function(){
+        this.emit(':tell','Ok, see you next time');
+    },
     'SessionEndedRequest' : function() {
         //onSessionEnded(this.event.request, this.event.session);
         this.emit(':tell','Goodbye!');
