@@ -60,17 +60,8 @@ var startModeHandlers = {
 //Handlers para los intent del skill
 var handlers = {
     'LaunchRequest': function () {
-        this.response.speak('Welcome to Read Notice Skill. Do yo want to start?')
-        .listen('Say yes to start or no to quit.');
+        this.response.listen('Welcome to Read Notice Skill. Login with your name to start');
         this.emit(':responseReady');
-    },
-    'AMAZON.YesIntent': function(){
-        this.response.speak('Great! Please try to saying the utterance for login in the system')
-        .listen('Please say: sign in with name');
-        this.emit(':responseReady');
-    },
-    'AMAZON.NoIntent': function(){
-        this.emit(':tell','Ok, see you next time');
     },
     'SessionEndedRequest' : function() {
         //onSessionEnded(this.event.request, this.event.session);
@@ -94,9 +85,10 @@ var handlers = {
                     if(username == null){//Si no está registrado en la base con ese nombre
                         func_db.registrar_usuario(slotValue,this.event.session.user.userId);       
                         this.emit(':tell', "Great! Could be successfully registered with the username "+ slotValue);
+                        this.emit('LaunchRequest');
                     }        
                     else{
-                        this.emit(':tell', "Sorry, the user already exists. It is not possible to register with the username "+ slotValue +". Please, register with a new name");
+                        this.emit(':ask', "Sorry, the user already exists. It is not possible to register with the username "+ slotValue +". Register with a new name"," Please, register with a new name");
                     }
                 });
             });
@@ -111,16 +103,16 @@ var handlers = {
                 func_db.busqueda_usuario(slotValue,this.event.session.user.userId,(username)=>{//Voy a buscar el user a la base 
                     if(username != null){//Si el user ya está registrado en la base        
                         this.attributes['logueado']= slotValue; //Se loguea: Asigna a prop.'logueado' de attributes de session el valor del slot(user)
-                        this.emit(':tell', "Hello "+ this.attributes['logueado']+"! Now, you can get your content");
+                        this.emit(':ask', "Hello "+ this.attributes['logueado']+"! Now, you can get your content.","If you want to listen the content just say it");
                     }
                     else{
-                        this.emit(':tell', "Sorry, there is no registered user with the name "+ slotValue +". Please, log in with a valid username");
+                        this.emit(':ask', "Sorry, there is no registered user with the name "+ slotValue +". Log in with a valid username.","Please, log in with a valid username");
                     }
                 });
             });
         }
         else{
-            this.emit(':tell', "Sorry, you can not login because the user "+ this.attributes['logueado']+" is already active in the system");
+            this.emit(':ask', "Sorry, you can not login because the user "+ this.attributes['logueado']+" is already active in the system.","Please, go back later");
         }
     },
     'Logout': function(){
@@ -132,7 +124,7 @@ var handlers = {
                     this.attributes['logueado']= ""; //Inicializa a prop.'logueado' de attributes de session 
                     this.emit(':tell', "Goodbye "+ slotValue+". See you later!");
                 }else{
-                    this.emit(':tell', "Sorry, you can not close the session. Please enter a correct username. The active user in the system is " + this.attributes['logueado']);
+                    this.emit(':ask', "Sorry, you can not close the session. Please enter a correct username. The active user in the system is " + this.attributes['logueado'],"Please, enter a correct username");
                 }
             });
         }else{ 
@@ -153,18 +145,18 @@ var handlers = {
                                   //this.emit(':saveState',true); //This is to persist session attributes into a table 'Users' in DynamoDB
                                 });
                     }else{
-                       this.emit(':tell', "Sorry, the user "+ usuarioLogueado +" does not have url and class configured to get the content");
+                       this.emit(':ask', "Sorry, the user "+ usuarioLogueado +" does not have url and class configured to get the content","What do you want to do now?");
                     }
                 }else{
-                 this.emit(':tell', "Sorry, there is no registered user with the name "+ usuarioLogueado +". Please, login with a valid username");
+                 this.emit(':ask', "Sorry, there is no registered user with the name "+ usuarioLogueado +". Please, login with a valid username","Please, login with a valid username");
                 }
             });//End obtener_datos_conf
         }else{
-            this.emit(':tell', "Sorry, first you must login to be able to get news");
+            this.emit(':ask', "Sorry, first you must login to be able to get news","Please login before you can obtain the content");
         }
     },
     'Unhandled': function() {
-        this.emit(':tell', 'Sorry, I didn\'t get that.');
+        this.emit(':ask', 'Sorry, I didn\'t get that.',"Please enter a valid intent request");
     }
 };
 
@@ -229,7 +221,7 @@ function confirmSlotValue(handlerThis,callback){
 
 function getNoticeResponse(url,clase,callback) {
     
-    var repromptText = null;
+    var repromptText = "What do you want to do now?";
     var cardTitle = "Title - ";//aca iria el titulo de la noticia
     //test http get
     testGet(url,clase, (response,t) => {
