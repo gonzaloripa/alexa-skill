@@ -32,6 +32,7 @@ exports.handler = function (event, context, callback) {
 //Funciones de interaccion con la base
 var func_db = require('./function_db'); 
 
+/*
 var readModeHandlers = {
 
 };
@@ -54,7 +55,7 @@ var startModeHandlers = {
         this.emit(':tell','Ok, see you next time');
     },
 };
-
+*/
 
 //Handlers para los intent del skill
 var handlers = {
@@ -95,10 +96,10 @@ var handlers = {
     },
     'Login': function(){
         //var myThis = this;
-        obtainSlotValue(this,(objectIntent)=>{ //Funcion helper
-            var slotValue = objectIntent.slots.User.value;//Almaceno el nombre dado por el usuario
-            
-            if(!this.attributes['logueado']){ //Si no ingresó nadie todavia
+        if(!this.attributes['logueado']){ //Si no ingresó nadie todavia
+            obtainSlotValue(this,(objectIntent)=>{ //Funcion helper
+                var slotValue = objectIntent.slots.User.value;//Almaceno el nombre dado por el usuario
+                
                 func_db.busqueda_usuario(slotValue,this.event.session.user.userId,(username)=>{//Voy a buscar el user a la base 
                     if(username != null){//Si el user ya está registrado en la base        
                         this.attributes['logueado']= slotValue; //Se loguea: Asigna a prop.'logueado' de attributes de session el valor del slot(user)
@@ -108,30 +109,29 @@ var handlers = {
                         this.emit(':tell', "Sorry, there is no registered user with the name "+ slotValue +". Please, log in with a valid username");
                     }
                 });
-            }
-            else{
-                this.emit(':tell', "Sorry, you can not login because the user "+ this.attributes['logueado']+" is already active in the system");
-            }
-        });
+            });
+        }
+        else{
+            this.emit(':tell', "Sorry, you can not login because the user "+ this.attributes['logueado']+" is already active in the system");
+        }
     },
     'Logout': function(){
-        obtainSlotValue(this,(objectIntent)=>{ //Funcion helper
+        if(this.attributes['logueado'] !== ""){
+            obtainSlotValue(this,(objectIntent)=>{ //Funcion helper
                 var slotValue = objectIntent.slots.User.value;//Almaceno el nombre dado por el usuario
                 
                 if(this.attributes['logueado'] == slotValue){ //Si existe un usuario activo con el nombre del slotValue
                     this.attributes['logueado']= ""; //Inicializa a prop.'logueado' de attributes de session 
                     this.emit(':tell', "Goodbye "+ slotValue+". See you later!");
-                }
-                else if(this.attributes['logueado'] == ""){
-                    this.emit(':tell', "Sorry, you must first login before you can logout");
-                } 
-                else{
+                }else{
                     this.emit(':tell', "Sorry, you can not close the session. Please enter a correct username. The active user in the system is " + this.attributes['logueado']);
                 }
-
-        });
+            });
+        }else{ 
+            this.emit(':tell', "Sorry, you must first login before you can logout");
+        } 
     },
-    'Read':function(){
+    'ReturnNoticeIntent':function(){
         //var myThis = this;
         var usuarioLogueado = this.attributes['logueado'];
         if(this.attributes['logueado']){
@@ -184,13 +184,13 @@ function onSessionEnded(sessionEndedRequest, session) {
 // --------------- Functions that control the skill's behavior -----------------------
 
 //Funcion que se encarga de obtener el slot si el usuario no lo incluye en el request
-function obtainSlotValue(this,callback){
-    const intentObj = this.event.request.intent; //the intent object represents the intent sent to the skill 
+function obtainSlotValue(handlerThis,callback){
+    var intentObj = handlerThis.event.request.intent; //the intent object represents the intent sent to the skill 
     if(!intentObj.slots.User.value){ //Si no incluyó su nombre dentro del request
         var slotToElicit = 'User';
         var speechOutput = 'Which is your username?';
         var repromptSpeech = 'Please say your username';
-        this.emit(':elicitSlot', slotToElicit, speechOutput, repromptSpeech);
+        handlerThis.emit(':elicitSlot', slotToElicit, speechOutput, repromptSpeech);
 
     }else{
         callback(intentObj);
@@ -198,21 +198,21 @@ function obtainSlotValue(this,callback){
 }
 
 //Funcion que se encarga de pedirle confirmacion al usuario acerca del valor del slot que dijo en el request.
-function confirmSlotValue(this,callback){
+function confirmSlotValue(handlerThis,callback){
     
-    const intentObj = this.event.request.intent;
+    const intentObj = handlerThis.event.request.intent;
     const slotToConfirm = 'User';
     
     if(intentObj.slots.User.confirmationStatus !== 'CONFIRMED'){
         if(intentObj.slots.User.confirmationStatus !== 'DENIED'){
             //El usuario todavia no confirmó el slot. Se le pide confirmación
             const speechOutput = "You want to register with the name "+ intentObj.slots.User.value +"?";
-            this.emit(':confirmSlot', slotToConfirm, speechOutput, speechOutput);
+            handlerThis.emit(':confirmSlot', slotToConfirm, speechOutput, speechOutput);
         }else{
             //El usuario niega la confirmacion del slot. Se le pide que haga el request con un nuevo valor
             const slotToElicit = 'User';
             const speechOutput = 'Okay, Which is your username?';
-            this.emit(':elicitSlot', slotToElicit, speechOutput, speechOutput);
+            handlerThis.emit(':elicitSlot', slotToElicit, speechOutput, speechOutput);
         }
     }else{
         callback(intentObj);
