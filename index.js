@@ -60,7 +60,8 @@ var startModeHandlers = {
 //Handlers para los intent del skill
 var handlers = {
     'LaunchRequest': function () {
-        this.response.listen('Welcome to Read Notice Skill. Login with your name to start');
+        this.response.speak('Welcome to Read Notice Skill. Login with your name to start').listen('Login with your name to start');
+        this.response.shouldEndSession(false);
         this.emit(':responseReady');
     },
     'SessionEndedRequest' : function() {
@@ -116,7 +117,8 @@ var handlers = {
         }
     },
     'Logout': function(){
-        if(this.attributes['logueado'] !== ""){
+
+        if(!this.attributes['logueado']){
             obtainSlotValue(this,(objectIntent)=>{ //Funcion helper
                 var slotValue = objectIntent.slots.User.value;//Almaceno el nombre dado por el usuario
                 
@@ -137,8 +139,8 @@ var handlers = {
         if(this.attributes['logueado']){
             
             func_db.obtener_datos_conf(usuarioLogueado,this.event.session.user.userId,(url, clase) =>{
-                if(url != null && clase != null){//Si existe el usuario
-                    if(url != "" && clase != ""){ //Si tiene url y clase definidos
+                //if(url != null && clase != null){//Si existe el usuario
+                    if(url != null && clase != null){ //Si tiene url y clase definidos
                         getNoticeResponse(url,clase, (cardTitle, speechOutput, repromptText, shouldEndSession) => {
                                      //this.response = buildResponse(sessionAttributes, speechletResponse);
                                      this.emit(':askWithCard', speechOutput,repromptText, cardTitle, speechOutput, null);
@@ -147,9 +149,9 @@ var handlers = {
                     }else{
                        this.emit(':ask', "Sorry, the user "+ usuarioLogueado +" does not have url and class configured to get the content","What do you want to do now?");
                     }
-                }else{
-                 this.emit(':ask', "Sorry, there is no registered user with the name "+ usuarioLogueado +". Please, login with a valid username","Please, login with a valid username");
-                }
+                //}else{
+                 //this.emit(':ask', "Sorry, there is no registered user with the name "+ usuarioLogueado +". Please, login with a valid username","Please, login with a valid username");
+                //}
             });//End obtener_datos_conf
         }else{
             this.emit(':ask', "Sorry, first you must login to be able to get news","Please login before you can obtain the content");
@@ -248,17 +250,25 @@ function testGet(url,clase,responseFunction) {
     var xpath = require('xpath')
     ,dom = require('xmldom').DOMParser;
 
-    request(url, (error, response, body) => { //url= 'http://cielosports.com/nota/75670/la_dirigencia_oferto_y_ahora_espera_por_el_si_de_ibanez/' 
-
+    request(url, (error, response, body) => { //url='https://www.nytimes.com/2018/01/27/business/its-not-a-roar-but-the-global-economy-is-finally-making-noise.html?hp&action=click&pgtype=Homepage&clickSource=story-heading&module=first-column-region&region=top-news&WT.nav=top-news' 
+                                              //clase:'story-body-text story-content'
+    //Implementar bien esta parte, ver bien como usar la clase definida de cada usuario
         var xml = body;
         var doc = new dom().parseFromString(xml);
-        var parrafo = xpath.select("string(//p)", doc);
-        var title = xpath.select("string(//title)", doc);
-        //console.log(nodes[0].toString());
-      
-        func.emit('update',parrafo,title)
+
+        var parrafo = xpath.evaluate(
+            "//*[@class='"+clase+"']",  // xpathExpression
+            doc,                        // contextNode
+            null,                       // namespaceResolver
+            xpath.XPathResult.ANY_TYPE, // resultType
+            null                        // result
+        )
+        node = parrafo.iterateNext();
+        while (node) {
+            console.log(node.firstChild.data);
+            node = parrafo.iterateNext();
+        }
     });
     
-
 }//Cierra testGet
 
