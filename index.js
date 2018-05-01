@@ -67,6 +67,12 @@ var handlers = {
     'SessionEndedRequest' : function() {
         //onSessionEnded(this.event.request, this.event.session);
         this.emit(':tell','Goodbye!');
+    },/*
+    'AMAZON.HelpIntent': function () {    
+        this.emit(':ask', "Return Notice lets ","");//Completar
+    },*/
+    'AMAZON.StopIntent': function () {
+        this.emit(':ask', "Okay, what do you want to do now?","Are you there? What we do now?");
     },
     /*
     'DialogIntent':function(){
@@ -138,10 +144,10 @@ var handlers = {
         var usuarioLogueado = this.attributes['logueado'];
         if(this.attributes['logueado']){
             
-            func_db.obtener_datos_conf(usuarioLogueado,this.event.session.user.userId,(url, clase) =>{
+            func_db.obtener_datos_conf(usuarioLogueado,this.event.session.user.userId,(url, path) =>{
                 //if(url != null && clase != null){//Si existe el usuario
-                    if(url != null && clase != null){ //Si tiene url y clase definidos
-                        getNoticeResponse(url,clase, (cardTitle, speechOutput, repromptText, shouldEndSession) => {
+                    if(path != null){ //Si tiene url y clase definidos
+                        getNoticeResponse(url,path, (cardTitle, speechOutput, repromptText, shouldEndSession) => {
                                      //this.response = buildResponse(sessionAttributes, speechletResponse);
                                      this.emit(':askWithCard', speechOutput,repromptText, cardTitle, speechOutput, null);
                                   //this.emit(':saveState',true); //This is to persist session attributes into a table 'Users' in DynamoDB
@@ -221,53 +227,126 @@ function confirmSlotValue(handlerThis,callback){
     }
 }
 
-function getNoticeResponse(url,clase,callback) {
+function getNoticeResponse(url,path,callback) {
     
     var repromptText = "What do you want to do now?";
     var cardTitle = "Title - ";//aca iria el titulo de la noticia
     //test http get
-    testGet(url,clase, (response,t) => {
+    testGet(url,path, (response) => {
 
-        var speechOutput = "The text of the article is: " + response; //response=body.data o parrafo 
+        var speechOutput = "The text of the article is: " + response; //response=contenido 
         var shouldEndSession = false;
-        cardTitle += t;
+        //cardTitle += t;
 
         callback(cardTitle, speechOutput, repromptText, shouldEndSession);
 
     });
 }
 
-function testGet(url,clase,responseFunction) {
+//Para obtener el elemento <a> a partir de un path dado.
+//Falta manejar el error de null en caso de que nunca encuentre un elemento padre <a>
+function findElementA(element){
+    console.log("------Elemento",element.nodeName," ",element.parentNode.nodeName)
+    var siblings = element.parentNode.childNodes;
+    if (siblings.length>1){
+      for (var i= 0; i<siblings.length; i++) {
+        var sibling= siblings[i];
+        if(sibling.tagName === "a"){
+          return sibling;
+        }
+      }
+      return findElementA(element.parentNode);
+    }
+}
+
+function testGet(url,path,responseFunction) {
 
     
     var EventEmitter = require("events").EventEmitter;
     var func = new EventEmitter();
-    func.on('update', (parrafo,title) => {
-        //console.info('\n\nCall completed '+parrafo+" "+title); 
-        responseFunction(parrafo,title);
+    func.on('update', (contenido) => {
+        responseFunction(contenido);
     });
+
     var request = require('request');
     var xpath = require('xpath')
     ,dom = require('xmldom').DOMParser;
+    
+    
+    request(url,(error, response, body) => { 
+        //poner aca las funciones getNoticias, walkDom,etc
+        //console.log("---------Body",body);
+        var docu = new dom().parseFromString(body);
+        var getElementByXpath = function(path) {
+            console.log("-------Path en getElement: ",path);
+            console.log("-------Evaluate: ",xpath.evaluate(path, docu, null, xpath.XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.lastChild.data);
+            return (xpath.evaluate(path, docu, null, xpath.XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue);
+        }
 
-    request(url, (error, response, body) => { //url='https://www.nytimes.com/2018/01/27/business/its-not-a-roar-but-the-global-economy-is-finally-making-noise.html?hp&action=click&pgtype=Homepage&clickSource=story-heading&module=first-column-region&region=top-news&WT.nav=top-news' 
-                                              //clase:'story-body-text story-content'
-    //Implementar bien esta parte, ver bien como usar la clase definida de cada usuario
-        var xml = body;
-        var doc = new dom().parseFromString(xml);
+        //href=obtener el href del link de la noticia
+        var href = (findElementA(getElementByXpath("//"+path))).getAttribute("href");        
+        
+        //Obtiene todo el contenido (todos los p hermanos buscando desde el body)
+        request(href, (error, response, body) => { 
+            var docu = new dom().parseFromString(body);
+            var cuerpo = xpath.evaluate("//body", docu, null, xpath.XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+            var nodeMax;
+            var maxP = 0;
+            var contenido=[];
+            var walkDOM = function (node,func) {
+                func(node);
+                node = node.firstChild;
+                while(node) {
+                  walkDOM(node,func);  
+                  node = node.nextSibling;
+                  if(node == cuerpo.lastChild){
+                    var siblings = nodeMax.getElementsByTagName("p");
+                    for (var i= 0; i<siblings.length; i++) {
+                      var sibling= siblings[i];
+                      contenido.push(sibling.textContent); //+=sibling.textContent+"\n";
+                      //sibling.style.backgroundColor = "red";
+                    }
+                    contenido=contenido.join("\n");
+                    console.log("Contenido: ",contenido);
+                  }
+                }
+            };
+            
+            walkDOM(cuerpo,function(node) {
+               var cantP=0;
+               if(node.nodeType===1){                     
+                  for (var i= 0; i < node.childNodes.length; i++) {
+                    var child= node.childNodes[i];
+                    if(child.tagName==="p"){ //Tener en cuenta tmb los text: child.nodeType===3 ||
+                      cantP+=1;
+                    }
+                  }
+                   if(cantP > maxP){
+                    maxP = cantP;
+                    nodeMax = node;
+                   }
+                }
+            });
 
-        var parrafo = xpath.evaluate(
-            "//*[@class='"+clase+"']",  // xpathExpression
+            func.emit('update',contenido);
+        });
+        /*
+        var parrafos = xpath.evaluate(
+            "//*[@class='"+clase+"']",  // xpathExpression: se fija todos los elementos que posean la clase pasada
             doc,                        // contextNode
             null,                       // namespaceResolver
             xpath.XPathResult.ANY_TYPE, // resultType
             null                        // result
         )
-        node = parrafo.iterateNext();
+        node = parrafos.iterateNext();
         while (node) {
+            contenido+=node.firstChild.data;
             console.log(node.firstChild.data);
-            node = parrafo.iterateNext();
+            node = parrafos.iterateNext();
         }
+        var title = xpath.select("string(//title)", doc);
+        */
+        
     });
     
 }//Cierra testGet

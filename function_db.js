@@ -66,7 +66,7 @@ function obtener_datos_conf(loggedName,user_id,callback){ //CAMBIAR!!!
 
     var params = {
           TableName : 'User',
-          ProjectionExpression: "#url, clase",
+          ProjectionExpression: "#url, xpath",
           FilterExpression : '#name = :n',
           ExpressionAttributeNames: {'#name':'name','#url':'url'},
           ExpressionAttributeValues : {':n' : loggedName}
@@ -83,7 +83,7 @@ function obtener_datos_conf(loggedName,user_id,callback){ //CAMBIAR!!!
         if(data.Items.length != 0){ //si encontró el nombre
             data.Items.forEach(function(row){
                 //console.log("----entro al for each " + row.name);
-                callback(row.url,row.clase); //retorna la url y la clase obtenidas de la configuracion del usuario 
+                callback(row.url,row.xpath); //retorna la url y el xpath obtenidas de la configuracion del usuario 
             });
         } else{
            callback(null,null); 
