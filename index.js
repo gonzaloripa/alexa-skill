@@ -1,5 +1,6 @@
 var Alexa = require('alexa-sdk');
 var APP_ID = 'amzn1.ask.skill.6a7efb87-1f31-49dd-b07a-0c6ee7993a0e';
+var languageStrings = require('./strings');
 
 // Route the incoming request based on type (LaunchRequest, IntentRequest,
 // etc.) The JSON body of the request is provided in the event parameter.
@@ -8,6 +9,7 @@ exports.handler = function (event, context, callback) {
         console.log("event.session.application.applicationId=" + event.session.application.applicationId);
         var alexa = Alexa.handler(event, context, callback);
         alexa.appId = APP_ID;
+        alexa.resources = languageStrings;
         /**
          * Uncomment this if statement and populate with your skill's application ID to
          * prevent someone else from configuring a skill that sends requests to this function.
@@ -21,7 +23,7 @@ exports.handler = function (event, context, callback) {
             onSessionStarted({ requestId: event.request.requestId }, event.session);
         }
 
-        alexa.registerHandlers(handlers);
+        alexa.registerHandlers(newSessionHandlers,endSessionHandlers,categoryModeHandlers,contentModeHandlers);
         alexa.execute();
     
     } catch (e) {
@@ -30,72 +32,63 @@ exports.handler = function (event, context, callback) {
 }; //End exports.handler
 
 //Funciones de interaccion con la base
-var func_db = require('./function_db'); 
+var request_db = require('./request-db'); 
 
 /*
-var readModeHandlers = {
-
-};
-var startModeHandlers = {
-    'LaunchRequest': function () {
-        this.response.speak('Welcome to Read Notice Skill. Do yo want to start?')
-        .listen('Say yes to start or no to quit.');
-        this.emit(':responseReady');
-    },
-    'SessionEndedRequest' : function() {
-        //onSessionEnded(this.event.request, this.event.session);
-        this.emit(':tell','Goodbye!');
-    },
-    'AMAZON.YesIntent': function(){
-        this.response.speak('Great! Please try to saying the utterance for login in the system')
-        .listen('Please say: sign in with name');
-        this.emit(':responseReady');
-    },
-    'AMAZON.NoIntent': function(){
-        this.emit(':tell','Ok, see you next time');
-    },
-};
-*/
-
-//Handlers para los intent del skill
-var handlers = {
-    'LaunchRequest': function () {
-        this.response.speak('Welcome to Read Notice Skill. Login with your name to start').listen('Login with your name to start');
-        this.response.shouldEndSession(false);
-        this.emit(':responseReady');
-    },
-    'SessionEndedRequest' : function() {
-        //onSessionEnded(this.event.request, this.event.session);
-        this.emit(':tell','Goodbye!');
-    },/*
     'AMAZON.HelpIntent': function () {    
         this.emit(':ask', "Return Notice lets ","");//Completar
-    },*/
-    'AMAZON.StopIntent': function () {
-        this.emit(':ask', "Okay, what do you want to do now?","Are you there? What we do now?");
     },
-    /*
     'DialogIntent':function(){
         //this.event.request.dialogState --->current dialog state
         
         const intentObj = this.event.request.intent; --->the intent object represents the intent sent to the skill
     },  
-    */
+*/
+const newSessionHandlers ={
+    'LaunchRequest': function () {
+        this.handler.state = 'CATEGORYMODE';
+        this.response.speak(this.t('WELCOME_MESSAGE')).listen(this.t('REP_WELCOME')); //this.t() se usa para obtener el string del mensaje en base al idioma locale del request
+        this.response.shouldEndSession(false);
+        this.emit(':responseReady');
+    }
+};
+
+const endSessionHandlers = {
+     'SessionEndedRequest' : function() {
+        //onSessionEnded(this.event.request, this.event.session);
+        if (this.event.request.reason == 'USER_INITIATED'){
+            this.emit(':tell',this.t('LEAVE_MESSAGE'));         
+        }else{
+            console.log("error ",this.event.request.error.message)
+            this.emit(':tell',this.t('LEAVE_MESSAGE_2'));
+        }
+
+    },   
+};
+
+const categoryModeHandlers = Alexa.CreateStateHandler('CATEGORYMODE',{
+    'SessionEndedRequest' : function() {
+        //onSessionEnded(this.event.request, this.event.session);
+        this.emit('SessionEndedRequest');
+    },
+    'AMAZON.StopIntent': function () {
+        this.emit(':ask',this.t('STOP_MESSAGE'),this.t('REP_STOP'));
+    },
     'Register': function(){
         //var myThis = this;
         obtainSlotValue(this,(objectIntent)=>{ //Funcion helper
             confirmSlotValue(this,(objectIntent)=>{//Funcion helper
                 var slotValue = objectIntent.slots.User.value;//Almaceno el nombre dado por el usuario
                 
-                func_db.busqueda_usuario(slotValue,this.event.session.user.userId,(username)=>{
-
+                request_db.busqueda_usuario(slotValue,this.event.session.user.userId,(username)=>{
+                    console.log("username ",username)
                     if(username == null){//Si no está registrado en la base con ese nombre
-                        func_db.registrar_usuario(slotValue,this.event.session.user.userId);       
-                        this.emit(':tell', "Great! Could be successfully registered with the username "+ slotValue);
-                        this.emit('LaunchRequest');
+                        request_db.registrar_usuario(slotValue,this.event.session.user.userId);       
+                        this.emit(':tell', this.t('REGISTER_SUC_MESSAGE', {slotValue:slotValue}));
+                        this.emit('LaunchRequest')
                     }        
                     else{
-                        this.emit(':ask', "Sorry, the user already exists. It is not possible to register with the username "+ slotValue +". Register with a new name"," Please, register with a new name");
+                        this.emit(':ask', this.t('REGISTER_REJ_MESSAGE',{slotValue:slotValue}),this.t('REP_REGISTER_REJ_MESSAGE'));
                     }
                 });
             });
@@ -105,21 +98,21 @@ var handlers = {
         //var myThis = this;
         if(!this.attributes['logueado']){ //Si no ingresó nadie todavia
             obtainSlotValue(this,(objectIntent)=>{ //Funcion helper
-                var slotValue = objectIntent.slots.User.value;//Almaceno el nombre dado por el usuario
-                
-                func_db.busqueda_usuario(slotValue,this.event.session.user.userId,(username)=>{//Voy a buscar el user a la base 
+                var slotValue = objectIntent.slots.User.value;//Almaceno el nombre dado por el usuario                
+                request_db.busqueda_usuario(slotValue,this.event.session.user.userId,(username)=>{//Voy a buscar el user a la base 
                     if(username != null){//Si el user ya está registrado en la base        
                         this.attributes['logueado']= slotValue; //Se loguea: Asigna a prop.'logueado' de attributes de session el valor del slot(user)
-                        this.emit(':ask', "Hello "+ this.attributes['logueado']+"! Now, you can get your content.","If you want to listen the content just say it");
+                        this.emit(':ask', this.t('LOGIN_SUC_MESSAGE',{slotValue:slotValue}),this.t('REP_LOGIN_SUC_MESSAGE'));
                     }
                     else{
-                        this.emit(':ask', "Sorry, there is no registered user with the name "+ slotValue +". Log in with a valid username.","Please, log in with a valid username");
+                        this.emit(':ask', this.t('LOGIN_REJ_MESSAGE',{slotValue:slotValue}),this.t('REP_LOGIN_REJ_MESSAGE'));
                     }
                 });
             });
         }
         else{
-            this.emit(':ask', "Sorry, you can not login because the user "+ this.attributes['logueado']+" is already active in the system.","Please, go back later");
+            var slotValue = this.attributes['logueado']
+            this.emit(':ask', this.t('LOGIN_REJ2_MESSAGE',{slotValue:slotValue}),this.t('REP_LOGIN_REJ2_MESSAGE'));
         }
     },
     'Logout': function(){
@@ -130,43 +123,117 @@ var handlers = {
                 
                 if(this.attributes['logueado'] == slotValue){ //Si existe un usuario activo con el nombre del slotValue
                     this.attributes['logueado']= ""; //Inicializa a prop.'logueado' de attributes de session 
-                    this.emit(':tell', "Goodbye "+ slotValue+". See you later!");
+                    this.emit(':tell', this.t('LOGOUT_SUC_MESSAGE',{slotValue:slotValue}));
                 }else{
-                    this.emit(':ask', "Sorry, you can not close the session. Please enter a correct username. The active user in the system is " + this.attributes['logueado'],"Please, enter a correct username");
+                    this.emit(':ask', this.t('LOGOUT_REJ_MESSAGE',{slotValue:slotValue}),this.t('REP_LOGOUT_REJ_MESSAGE'));
                 }
             });
         }else{ 
-            this.emit(':tell', "Sorry, you must first login before you can logout");
+            this.emit(':tell', this.t('LOGOUT_REJ2_MESSAGE'));
         } 
     },
-    'ReturnNoticeIntent':function(){
-        //var myThis = this;
+    'CategoriesIntent':function(){ //Utterance:return my categories
         var usuarioLogueado = this.attributes['logueado'];
-        if(this.attributes['logueado']){
-            
-            func_db.obtener_datos_conf(usuarioLogueado,this.event.session.user.userId,(url, path) =>{
-                //if(url != null && clase != null){//Si existe el usuario
-                    if(path != null){ //Si tiene url y clase definidos
-                        getNoticeResponse(url,path, (cardTitle, speechOutput, repromptText, shouldEndSession) => {
-                                     //this.response = buildResponse(sessionAttributes, speechletResponse);
-                                     this.emit(':askWithCard', speechOutput,repromptText, cardTitle, speechOutput, null);
-                                  //this.emit(':saveState',true); //This is to persist session attributes into a table 'Users' in DynamoDB
-                                });
-                    }else{
-                       this.emit(':ask', "Sorry, the user "+ usuarioLogueado +" does not have url and class configured to get the content","What do you want to do now?");
-                    }
-                //}else{
-                 //this.emit(':ask', "Sorry, there is no registered user with the name "+ usuarioLogueado +". Please, login with a valid username","Please, login with a valid username");
-                //}
-            });//End obtener_datos_conf
-        }else{
-            this.emit(':ask', "Sorry, first you must login to be able to get news","Please login before you can obtain the content");
+        request_db.getCategories(usuarioLogueado,this.event.session.user.userId,(categories)=>{ //categories=[{},{}]
+            this.attributes['Action'] = 'ListCategories'
+            this.attributes['ActualIndex'] = -1 
+            console.log("---Categories",categories)
+            this.attributes['Categories'] = categories
+            this.emitWithState('ConfirmationProcess')
+        });
+    },    
+    'ConfirmationProcess':function(){ //Utterance:Next
+        
+        var listaCategorias = this.attributes['Categories'] 
+        if(this.attributes['ActualIndex'] == (listaCategorias.length - 1)){//Si leyó toda la lista 
+            //this.handler.state = 'MENUMODE'
+            this.handler.state = ''
+            this.emit(':ask',this.t('START_POINT'))
+        }else{ 
+                this.attributes['ActualIndex']+=1
+                var index = this.attributes['ActualIndex'];
+                var category = listaCategorias[index].category;
+                if(index == 0){//Agrega mensaje inicial a la lectura de categorias
+                    this.emit(':ask',this.t('LIST_OF_CATEGORIES',{category:category}),this.t('LIST_OF_CATEGORIES',{category:category}));//Lee los titulos de a uno
+                }else{
+                    this.emit(':ask',category,category);//Lee los titulos de a uno
+                }            
         }
     },
+    'Okintent': function() { //Utterance:ok
+        //this.attributes['ActualIndex'] +=1;        
+        var listaCategorias = this.attributes['Categories']
+        this.handler.state = 'CONTENTMODE'
+        this.emit('ReturnNoticeIntent',listaCategorias[this.attributes['ActualIndex']].category)
+        //Fijarse como volver de nuevo a la lista de categorias                
+    },
+});
+
+//Handlers para los intent del skill
+const contentModeHandlers = Alexa.CreateStateHandler('CONTENTMODE', {
+    'ReturnNoticeIntent':function(selectedCategory=""){ //Utterance:read my notice
+        //var myThis = this;
+        console.log("selected category",selectedCategory)
+        var usuarioLogueado = this.attributes['logueado'];
+        if(this.attributes['logueado']){     
+            request_db.obtener_datos_conf(usuarioLogueado,this.event.session.user.userId,selectedCategory,(noticias) =>{
+                //if(url != null && clase != null){//Si existe el usuario
+                    console.log("---noticias",noticias)
+                    this.attributes['ActualIndex'] = -1 
+                    this.attributes['Noticias'] = noticias
+                    this.attributes['Action'] = 'ListContent'   
+                    this.emitWithState('ConfirmationProcess')
+            });//End obtener_datos_conf
+        }else{
+            this.emit(':ask', this.t('CONTENT_REJ_MESSAGE'),this.t('REP_CONTENT_REJ_MESSAGE'));
+        }
+    },   
+    'ConfirmationProcess':function(){ //Utterance:Next        
+        var listaContent = this.attributes['Noticias']
+        console.log("--Es el ultimo? ",listaContent[this.attributes['ActualIndex']],(listaContent.length - 1))     
+        if(this.attributes['ActualIndex'] == (listaContent.length - 1)){//Si leyó toda la lista 
+            this.handler.state = 'CATEGORYMODE'
+            this.emit('CategoriesIntent')
+        }else{ 
+                this.attributes['ActualIndex']+=1
+                var index = this.attributes['ActualIndex'];
+                var noticia = listaContent[index];
+                getTitleContent(noticia, (title)=>{
+                    this.attributes['ActualTitle'] = title;
+                    this.attributes['ActualUrl'] = noticia.url;
+                    this.attributes['ActualPath'] = noticia.xpath;           
+                    if(index == 0){//Agrega mensaje inicial a la lectura de titulos
+                        this.emit(':ask',this.t('LIST_OF_TITLES',{title:title}),this.t('LIST_OF_TITLES',{title:title}));//Lee los titulos de a uno
+                    }else{
+                        this.emit(':ask',title,title);//Lee los titulos de a uno
+                    }
+                });
+            }
+    },    
+    'Okintent': function() { //Utterance:ok
+        //this.attributes['ActualIndex'] +=1;
+        this.emit('ReturnSingleContent',this.attributes['ActualUrl'],this.attributes['ActualPath'])               
+    },
+    'ReturnSingleContent':function(url,path){
+                getNoticeResponse(url,path, (cardTitle, speechOutput, repromptText, shouldEndSession) => {
+                        //this.response = buildResponse(sessionAttributes, speechletResponse);
+                        if(this.attributes['ActualIndex'] == (this.attributes['Noticias'].length - 1)){
+                            speechOutput = this.t("LAST_CONTENT")+speechOutput+this.t("LAST_CONTENT_END")
+                        }
+                        this.emit(':askWithCard', speechOutput,repromptText, cardTitle, speechOutput, null);
+                        //this.emit(':saveState',true); //This is to persist session attributes into a table 'Users' in DynamoDB
+                });
+            /*
+            if(url != null && path != null){ //Si tiene url y path definidos
+                
+            }else{
+                this.emit(':ask', "Sorry, the user "+ usuarioLogueado +" does not have url and class configured to get the content","What do you want to do now?");
+            }*/            
+    },
     'Unhandled': function() {
-        this.emit(':ask', 'Sorry, I didn\'t get that.',"Please enter a valid intent request");
+        this.emit(':ask', this.t('CONTENT_REJ2_MESSAGE'),this.t('REP_CONTENT_REJ2_MESSAGE'));
     }
-};
+});
 
 
 /**
@@ -187,17 +254,22 @@ function onSessionEnded(sessionEndedRequest, session) {
     // Add cleanup logic here
 }
 
-
-
+  
 // --------------- Functions that control the skill's behavior -----------------------
 
 //Funcion que se encarga de obtener el slot si el usuario no lo incluye en el request
 function obtainSlotValue(handlerThis,callback){
-    var intentObj = handlerThis.event.request.intent; //the intent object represents the intent sent to the skill 
+    var intentObj //the intent object represents the intent sent to the skill 
+    if(handlerThis.event.request.intent){
+       intentObj = handlerThis.event.request.intent; //the intent object represents the intent sent to the skill 
+    }else{
+       intentObj = handlerThis.request.intent; //the intent object represents the intent sent to the skill 
+    }
+    console.log("---usuario",intentObj.slots.User.value)
     if(!intentObj.slots.User.value){ //Si no incluyó su nombre dentro del request
         var slotToElicit = 'User';
-        var speechOutput = 'Which is your username?';
-        var repromptSpeech = 'Please say your username';
+        var speechOutput = handlerThis.t('OBTAIN_SLOT');
+        var repromptSpeech = handlerThis.t('REP_OBTAIN_SLOT');
         handlerThis.emit(':elicitSlot', slotToElicit, speechOutput, repromptSpeech);
 
     }else{
@@ -227,12 +299,41 @@ function confirmSlotValue(handlerThis,callback){
     }
 }
 
+function getTitleContent(noticia,callback){
+    var request = require('request');
+    var xpath = require('xpath')
+    ,dom = require('xmldom').DOMParser;
+    console.log("-------Noticia ",noticia,noticia.url,noticia.xpath)
+    var title;
+        request(noticia.url,(error, response, body) => { 
+            //poner aca las funciones getNoticias, walkDom,etc
+            //console.log("---------Body",body);
+            var docu = new dom().parseFromString(body);
+            var getElementByXpath = function(path) {
+                console.log("-------Path en getElement: ",path);
+                //console.log("-------Evaluate: ",xpath.evaluate(path, docu, null, xpath.XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.lastChild.data);
+                return (xpath.evaluate(path, docu, null, xpath.XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue);
+              
+            }
+            
+                console.log("----Element a ",findElementA(getElementByXpath("//"+noticia.xpath)).attributes[1].nodeValue)
+                title = (findElementA(getElementByXpath("//"+noticia.xpath)).attributes[1].nodeValue)
+                if(typeof title == undefined){
+                    title = "The path of the content has changed"
+                }
+          
+            console.log("---Title",title)
+            callback(title);
+        });
+}
+
+
 function getNoticeResponse(url,path,callback) {
     
     var repromptText = "What do you want to do now?";
     var cardTitle = "Title - ";//aca iria el titulo de la noticia
     //test http get
-    testGet(url,path, (response) => {
+    getPath(url,path, (response) => {
 
         var speechOutput = "The text of the article is: " + response; //response=contenido 
         var shouldEndSession = false;
@@ -259,8 +360,8 @@ function findElementA(element){
     }
 }
 
-function testGet(url,path,responseFunction) {
-
+function getPath(url,path,responseFunction) {
+    //url=url de la pagina principal
     
     var EventEmitter = require("events").EventEmitter;
     var func = new EventEmitter();
@@ -271,8 +372,7 @@ function testGet(url,path,responseFunction) {
     var request = require('request');
     var xpath = require('xpath')
     ,dom = require('xmldom').DOMParser;
-    
-    
+        
     request(url,(error, response, body) => { 
         //poner aca las funciones getNoticias, walkDom,etc
         //console.log("---------Body",body);
@@ -285,7 +385,6 @@ function testGet(url,path,responseFunction) {
 
         //href=obtener el href del link de la noticia
         var href = (findElementA(getElementByXpath("//"+path))).getAttribute("href");        
-        
         //Obtiene todo el contenido (todos los p hermanos buscando desde el body)
         request(href, (error, response, body) => { 
             var docu = new dom().parseFromString(body);
@@ -303,6 +402,7 @@ function testGet(url,path,responseFunction) {
                     var siblings = nodeMax.getElementsByTagName("p");
                     for (var i= 0; i<siblings.length; i++) {
                       var sibling= siblings[i];
+                      console.log(sibling.textContent,siblings.length)
                       contenido.push(sibling.textContent); //+=sibling.textContent+"\n";
                       //sibling.style.backgroundColor = "red";
                     }
@@ -325,6 +425,7 @@ function testGet(url,path,responseFunction) {
                     maxP = cantP;
                     nodeMax = node;
                    }
+                   console.log("node max ",nodeMax)
                 }
             });
 
@@ -349,5 +450,5 @@ function testGet(url,path,responseFunction) {
         
     });
     
-}//Cierra testGet
+}//Cierra getPath
 
