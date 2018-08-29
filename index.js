@@ -23,7 +23,7 @@ exports.handler = function (event, context, callback) {
             onSessionStarted({ requestId: event.request.requestId }, event.session);
         }
 
-        alexa.registerHandlers(newSessionHandlers,endSessionHandlers,categoryModeHandlers,contentModeHandlers);
+        alexa.registerHandlers(newSessionHandlers,endSessionHandlers,categoryModeHandlers,contentModeHandlers,introModeHandlers);
         alexa.execute();
     
     } catch (e) {
@@ -116,8 +116,8 @@ const categoryModeHandlers = Alexa.CreateStateHandler('CATEGORYMODE',{
         }
     },
     'Logout': function(){
-
-        if(!this.attributes['logueado']){
+        //console.log("---log out : "+this.attributes['logueado']+(!this.attributes['logueado']))
+        if(this.attributes['logueado']){
             obtainSlotValue(this,(objectIntent)=>{ //Funcion helper
                 var slotValue = objectIntent.slots.User.value;//Almaceno el nombre dado por el usuario
                 
@@ -135,7 +135,7 @@ const categoryModeHandlers = Alexa.CreateStateHandler('CATEGORYMODE',{
     'CategoriesIntent':function(){ //Utterance:return my categories
         var usuarioLogueado = this.attributes['logueado'];
         request_db.getCategories(usuarioLogueado,this.event.session.user.userId,(categories)=>{ //categories=[{},{}]
-            this.attributes['Action'] = 'ListCategories'
+            //this.attributes['Action'] = 'ListCategories'
             this.attributes['ActualIndex'] = -1 
             console.log("---Categories",categories)
             this.attributes['Categories'] = categories
@@ -148,7 +148,7 @@ const categoryModeHandlers = Alexa.CreateStateHandler('CATEGORYMODE',{
         if(this.attributes['ActualIndex'] == (listaCategorias.length - 1)){//Si leyó toda la lista 
             //this.handler.state = 'MENUMODE'
             this.handler.state = ''
-            this.emit(':ask',this.t('START_POINT'))
+            this.emitWithState(':ask',this.t('START_POINT'))
         }else{ 
                 this.attributes['ActualIndex']+=1
                 var index = this.attributes['ActualIndex'];
@@ -164,7 +164,10 @@ const categoryModeHandlers = Alexa.CreateStateHandler('CATEGORYMODE',{
         //this.attributes['ActualIndex'] +=1;        
         var listaCategorias = this.attributes['Categories']
         this.handler.state = 'CONTENTMODE'
-        this.emit('ReturnNoticeIntent',listaCategorias[this.attributes['ActualIndex']].category)
+        console.log("---state :",this.handler.state)
+        var cate = listaCategorias[this.attributes['ActualIndex']];
+        console.log("---cate :",cate," ",cate.category)
+        this.emitWithState('ReturnNoticeIntent',cate.category)
         //Fijarse como volver de nuevo a la lista de categorias                
     },
 });
@@ -181,7 +184,7 @@ const contentModeHandlers = Alexa.CreateStateHandler('CONTENTMODE', {
                     console.log("---noticias",noticias)
                     this.attributes['ActualIndex'] = -1 
                     this.attributes['Noticias'] = noticias
-                    this.attributes['Action'] = 'ListContent'   
+                    //this.attributes['Action'] = 'ListContent'   
                     this.emitWithState('ConfirmationProcess')
             });//End obtener_datos_conf
         }else{
@@ -190,10 +193,10 @@ const contentModeHandlers = Alexa.CreateStateHandler('CONTENTMODE', {
     },   
     'ConfirmationProcess':function(){ //Utterance:Next        
         var listaContent = this.attributes['Noticias']
-        console.log("--Es el ultimo? ",listaContent[this.attributes['ActualIndex']],(listaContent.length - 1))     
+        //console.log("--Es el ultimo? ",listaContent[this.attributes['ActualIndex']],(listaContent.length - 1))     
         if(this.attributes['ActualIndex'] == (listaContent.length - 1)){//Si leyó toda la lista 
             this.handler.state = 'CATEGORYMODE'
-            this.emit('CategoriesIntent')
+            this.emitWithState('CategoriesIntent')
         }else{ 
                 this.attributes['ActualIndex']+=1
                 var index = this.attributes['ActualIndex'];
@@ -201,26 +204,49 @@ const contentModeHandlers = Alexa.CreateStateHandler('CONTENTMODE', {
                 getTitleContent(noticia, (title)=>{
                     this.attributes['ActualTitle'] = title;
                     this.attributes['ActualUrl'] = noticia.url;
-                    this.attributes['ActualPath'] = noticia.xpath;           
+                    this.attributes['ActualPath'] = noticia.xpath;
+                    var metainfo = "";
+                    if(noticia.metainfo){
+                        metainfo = noticia.metainfo;
+                        this.attributes['MetaInfo'] = metainfo;           
+                    }
+
                     if(index == 0){//Agrega mensaje inicial a la lectura de titulos
-                        this.emit(':ask',this.t('LIST_OF_TITLES',{title:title}),this.t('LIST_OF_TITLES',{title:title}));//Lee los titulos de a uno
+                        this.emit(':ask',this.t('LIST_OF_TITLES',{metainfo:metainfo,title:title}),this.t('LIST_OF_TITLES',{metainfo:metainfo,title:title}));//Lee los titulos de a uno
                     }else{
-                        this.emit(':ask',title,title);//Lee los titulos de a uno
+                        this.emit(':ask',metainfo+". "+title,metainfo+". "+title);//Lee los titulos de a uno
                     }
                 });
             }
     },    
     'Okintent': function() { //Utterance:ok
         //this.attributes['ActualIndex'] +=1;
-        this.emit('ReturnSingleContent',this.attributes['ActualUrl'],this.attributes['ActualPath'])               
+        console.log("--entra al ok del contentmode")
+        this.emitWithState('ReturnSingleContent',this.attributes['ActualUrl'],this.attributes['ActualPath'])               
+    },
+    'AMAZON.YesIntent':function(){//Utterance yes
+        this.handler.state = 'INTROMODE'
+        this.emitWithState('ProcessIntro', this.attributes['Intro']);
+    },
+    'AMAZON.NoIntent':function(){//Utterance no
+        this.emitWithState('ReadContent');
+    },
+    'ReadContent':function(){
+        console.log("--vuelve al read content")
+        var repromptText = "What do you want to do now?";
+        var shouldEndSession = false;
+        this.emit(':askWithCard', this.attributes['Content'],repromptText,this.attributes['Intro'], this.attributes['Content'], null);        
     },
     'ReturnSingleContent':function(url,path){
-                getNoticeResponse(url,path, (cardTitle, speechOutput, repromptText, shouldEndSession) => {
+                console.log("--entra al return single content")
+                getNoticeResponse(url,path, (intro, speechOutput, repromptText, shouldEndSession) => {
                         //this.response = buildResponse(sessionAttributes, speechletResponse);
                         if(this.attributes['ActualIndex'] == (this.attributes['Noticias'].length - 1)){
-                            speechOutput = this.t("LAST_CONTENT")+speechOutput+this.t("LAST_CONTENT_END")
+                            speechOutput = speechOutput+this.t("LAST_CONTENT")+this.t("LAST_CONTENT_END")
                         }
-                        this.emit(':askWithCard', speechOutput,repromptText, cardTitle, speechOutput, null);
+                        this.attributes['Intro'] = intro;  
+                        this.attributes['Content'] = speechOutput
+                        this.emit(':ask',this.t('ASK_FOR_INTRO'),this.t('ASK_FOR_INTRO'))
                         //this.emit(':saveState',true); //This is to persist session attributes into a table 'Users' in DynamoDB
                 });
             /*
@@ -233,6 +259,22 @@ const contentModeHandlers = Alexa.CreateStateHandler('CONTENTMODE', {
     'Unhandled': function() {
         this.emit(':ask', this.t('CONTENT_REJ2_MESSAGE'),this.t('REP_CONTENT_REJ2_MESSAGE'));
     }
+});
+
+const introModeHandlers = Alexa.CreateStateHandler('INTROMODE', {
+    
+    'AMAZON.YesIntent':function(){//Utterance yes
+        this.handler.state = 'CONTENTMODE'
+        this.emitWithState('ReadContent');
+    },
+    'AMAZON.NoIntent':function(){//Utterance no
+        this.handler.state = 'CONTENTMODE'
+        this.emitWithState('ConfirmationProcess');
+    },
+    'ProcessIntro':function(intro){
+        this.emit(':ask',this.t('READ_INTRO',{intro:intro+this.t("LAST_CONTENT")}))
+    }
+
 });
 
 
@@ -330,16 +372,14 @@ function getTitleContent(noticia,callback){
 
 function getNoticeResponse(url,path,callback) {
     
-    var repromptText = "What do you want to do now?";
-    var cardTitle = "Title - ";//aca iria el titulo de la noticia
+    var intro ;//intro de la noticia
     //test http get
-    getPath(url,path, (response) => {
+    getPath(url,path, (content,int) => {
 
-        var speechOutput = "The text of the article is: " + response; //response=contenido 
-        var shouldEndSession = false;
-        //cardTitle += t;
+        var speechOutput = "The text of the article is: " + content;
+        intro=int
 
-        callback(cardTitle, speechOutput, repromptText, shouldEndSession);
+        callback(intro, speechOutput)
 
     });
 }
@@ -365,8 +405,9 @@ function getPath(url,path,responseFunction) {
     
     var EventEmitter = require("events").EventEmitter;
     var func = new EventEmitter();
-    func.on('update', (contenido) => {
-        responseFunction(contenido);
+    func.on('update', (contenido,intro) => {
+        console.log("entra al update con "+intro+contenido)
+        responseFunction(contenido,intro);
     });
 
     var request = require('request');
@@ -389,6 +430,10 @@ function getPath(url,path,responseFunction) {
         request(href, (error, response, body) => { 
             var docu = new dom().parseFromString(body);
             var cuerpo = xpath.evaluate("//body", docu, null, xpath.XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+            
+            var intro = xpath.evaluate("(//h1|//h2|//h3)/following-sibling::p[1]",docu, null, xpath.XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent;
+            console.log("----intro "+intro)
+            
             var nodeMax;
             var maxP = 0;
             var contenido=[];
@@ -402,7 +447,7 @@ function getPath(url,path,responseFunction) {
                     var siblings = nodeMax.getElementsByTagName("p");
                     for (var i= 0; i<siblings.length; i++) {
                       var sibling= siblings[i];
-                      console.log(sibling.textContent,siblings.length)
+                      //console.log(sibling.textContent,siblings.length)
                       contenido.push(sibling.textContent); //+=sibling.textContent+"\n";
                       //sibling.style.backgroundColor = "red";
                     }
@@ -425,11 +470,11 @@ function getPath(url,path,responseFunction) {
                     maxP = cantP;
                     nodeMax = node;
                    }
-                   console.log("node max ",nodeMax)
+                   //console.log("node max ",nodeMax)
                 }
             });
 
-            func.emit('update',contenido);
+            func.emit('update',contenido,intro);
         });
         /*
         var parrafos = xpath.evaluate(

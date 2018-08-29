@@ -1,4 +1,8 @@
 Login Sign in with name {User}
 Logout Sign off with name {User}
-ReturnNoticeIntent Read my notice 
+CategoriesIntent return my categories
+ConfirmationProcess next
+Okintent ok
 Register Register with name {User}
+
+Open return notice -->sign in with name {User} --> return my categories --> ok/next -->ok/next --> sign off with name {User}

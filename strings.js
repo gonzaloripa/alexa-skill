@@ -25,13 +25,15 @@ const languageStrings = {
             'REP_CONTENT_REJ_MESSAGE':'Please login before you can obtain the content',
             'CONTENT_REJ2_MESSAGE':'Sorry, I didn\'t get that',
             'REP_CONTENT_REJ2_MESSAGE':'Please enter a valid intent request',
-            'LIST_OF_TITLES':'Say ok to confirm and say continue to pass to the next title. The titles are: {{title}}',
+            'LIST_OF_TITLES':'Say ok to confirm and say next to pass to the next title or if it is the last one, to return to the list of categories. The titles are: {{metainfo}}. {{title}} .',
             'LIST_OF_CATEGORIES':'Say ok to confirm and say next to pass to the next category. The categories are: {{category}}',
             'OBTAIN_SLOT':'Which is your username?',
             'REP_OBTAIN_SLOT':'Please say your username',
-            'LAST_CONTENT':'This is the last content for the category.',
+            'LAST_CONTENT':'This is the last content for the category. ',
             'LAST_CONTENT_END':'Say next to return to the list of categories',
-            'START_POINT':'There are no more categories. Say return my categories to return to the list or sign off before to quit'
+            'START_POINT':'There are no more categories. Say return my categories to return to the list or sign off before to quit',
+            'ASK_FOR_INTRO':'Do you like to listen a intro before?',
+            'READ_INTRO':'{{intro}}. Do you want to listen the rest of the content?'
         }
     },
     'en-US': {
@@ -59,13 +61,15 @@ const languageStrings = {
             'REP_CONTENT_REJ_MESSAGE':'Please login before you can obtain the content',
             'CONTENT_REJ2_MESSAGE':'Sorry, I didn\'t get that',
             'REP_CONTENT_REJ2_MESSAGE':'Please enter a valid intent request',        
-            'LIST_OF_TITLES':'Say ok to confirm and say continue to pass to the next title. The titles are: {{title}}',        
+            'LIST_OF_TITLES':'Say ok to confirm and say next to pass to the next title or if it is the last one, to return to the list of categories. The titles are: {{metainfo}}. {{title}}',        
             'LIST_OF_CATEGORIES':'Say ok to confirm and say next to pass to the next category. The categories are: {{category}}',
             'OBTAIN_SLOT':'Which is your username?',
             'REP_OBTAIN_SLOT':'Please say your username',
             'LAST_CONTENT':'This is the last content for the category.',
             'LAST_CONTENT_END':'Say next to return to the list of categories',
-            'START_POINT':'There are no more categories. Say return my categories to return to the list or sign off before to quit'
+            'START_POINT':'There are no more categories. Say return my categories to return to the list or sign off before to quit',
+            'ASK_FOR_INTRO':'Do you want to listen a intro before?',
+            'READ_INTRO':'{{intro}}. Do you want to listen the rest of the content?'
         }
     },
     'es-ES': {
@@ -86,20 +90,22 @@ const languageStrings = {
             'LOGIN_REJ2_MESSAGE':'Lo siento, no puedes ingresar porque el usuario {{slotValue}} ya se encuentra activo',
             'REP_LOGIN_REJ2_MESSAGE':'Por favor, vuelve mas tarde',
             'LOGOUT_SUC_MESSAGE':'Aios {{slotValue}}. Nos vemos mas tarde!',
-            'LOGOUT_REJ_MESSAGE':'Lo siento, no es posible cerrar la sesion. Ingresa un nomvbre de usuario correcto. El usuario activo en el sistema es {{slotValue}}',
+            'LOGOUT_REJ_MESSAGE':'Lo siento, no es posible cerrar la sesion. Ingresa un nombre de usuario correcto. El usuario activo en el sistema es {{slotValue}}',
             'REP_LOGOUT_REJ_MESSAGE':'Por favor, ingresa con un nombre de usuario correcto',
             'LOGOUT_REJ2_MESSAGE':'Lo siento, debes ingresar primero al sistema antes de poder salir',
             'CONTENT_REJ_MESSAGE':'Lo siento, debes ingresar primero para poder obtener tus contenidos',
             'REP_CONTENT_REJ_MESSAGE':'Por favor ingresa antes de poder obtener tus contenidos',
             'CONTENT_REJ2_MESSAGE':'Lo siento, no conozco ese mensaje',
             'REP_CONTENT_REJ2_MESSAGE':'Por favor ingresa un requerimiento correcto',
-            'LIST_OF_TITLES':'Indica ok para confirmar y continuar para avanzar al siguiente titulo. Los titulos son: {{title}}',
+            'LIST_OF_TITLES':'Indica ok para confirmar y siguiente para avanzar al siguiente titulo o si es el último, para volver a la lista de categorías. Los titulos son: {{metainfo}}. {{title}}',
             'LIST_OF_CATEGORIES':'Indica ok para confirmar y siguiente para avanzar a la siguiente categoria. Las categorias son: {{category}}',
             'OBTAIN_SLOT':'Cual es tu usuario?',
             'REP_OBTAIN_SLOT':'Por favor di tu nombre de usuario',
             'LAST_CONTENT':'Este es el ultimo contenido de la categoria.',        
             'LAST_CONTENT_END':'Di siguiente para volver a la lista de categorias',
-            'START_POINT':'No quedan mas categorias. Di retornar mis categorias para volver a la lista o cierra sesion antes de salir'
+            'START_POINT':'No quedan mas categorias. Di retornar mis categorias para volver a la lista o cierra sesion antes de salir',
+            'ASK_FOR_INTRO':'Quieres escuchar una introduccion antes?',
+            'READ_INTRO':'{{intro}}. Quieres escuchar el resto del contenido?'
         }
     }
 };
