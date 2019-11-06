@@ -6,3 +6,6 @@ Okintent ok
 Register Register with name {User}
 
 Open return notice -->sign in with name {User} --> return my categories --> ok/next -->ok/next --> sign off with name {User}
+
+Ask text adapter to read my contents
+Pide al lector de contenidos que lea mis contenidos
