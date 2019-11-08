@@ -10,30 +10,8 @@ module.exports = {
     'AMAZON.StopIntent': function () {
         this.emit(':ask',this.t('STOP_MESSAGE'),this.t('REP_STOP'));
     },
-    'ReadWeather':function(){
-        this.attributes['PrevRequest'] = "Weather"
-        this.attributes['logueado'] = "gonza"
-        var usuarioLogueado = "gonza"//this.attributes['logueado'];
-        var conjunto = "Clima" //Definir el nombre del conjunto
-        var pattern = "Leer solo titulos" //Definir el patron
-        request_db.obtener_contenidos_por_orden(usuarioLogueado,conjunto) 
-        .then(contents =>{
-            this.attributes['OPTIONS'] = (this.event.request.locale == "es-ES") ? ['si','no'] : ['yes','no']
-            this.attributes['ActualIndex'] = 0
-            this.attributes['Contenidos'] = contents //contents=[{content:{idcontent,infocontent:{url","xpath"},metadata}},{}]
-            this.attributes['ContentsToRead'] = []            
-            this.emitWithState('ConfirmationProcess',pattern)
-        })
-        .catch(e=>{
-            //console.log("--No se encontraron contents ",e)
-        })         
-    },
-    'ReadInOrder':function(){
-        this.attributes['PrevRequest'] = "ReadTitle"
-        this.attributes['logueado'] = "gonza"
-        var usuarioLogueado = "gonza"//this.attributes['logueado'];
-        var conjunto = "Noticias" //Definir el nombre del conjunto
-        var pattern = "Leer introduccion y contenido" //Definir el patron
+    'ReadInOrder':function(conjunto,pattern){
+        var usuarioLogueado = this.attributes['logueado'];
         request_db.obtener_contenidos_por_orden(usuarioLogueado,conjunto) 
         .then(contents =>{
         	this.attributes['OPTIONS'] = (this.event.request.locale == "es-ES") ? ['si','no'] : ['yes','no']
@@ -47,9 +25,8 @@ module.exports = {
         })         
     },
     'ConfirmationProcess': function(pattern) {
-            //this.attributes['OPTIONS'] = (this.event.request.locale == "es-ES") ? ['ok','siguiente'] : ['ok','next']
-            this.attributes['PrevState'] = "orderedMode"
-            //this.attributes['PrevRequest'] = "ReadTitle"
+            this.attributes['OPTIONS'] = (this.event.request.locale == "es-ES") ? ['ok','siguiente'] : ['ok','next']
+            this.attributes['PrevRequest'] = "ReadTitle"
             
             var index = this.attributes['ActualIndex']
             var contenidos = this.attributes['Contenidos'][index]

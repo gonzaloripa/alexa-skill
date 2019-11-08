@@ -16,8 +16,10 @@ module.exports = {
         let myThis = this
         index.setAttributes(this,content,this.attributes['ActualIndex'])//res.json()={contenido,host,title,intro}
         .then(()=>{
-            console.log("#Va al ReadTitle")
-            myThis.emitWithState('ReadTitle')  
+            myThis.emitWithState(
+                this.t('CONTENTS_READY_PATTERN',{pattern:pattern}),
+                this.t('CONTENTS_READY_PATTERN',{pattern:pattern})
+            )  
         })
         .catch(err =>{
             //console.log("Error Confirmation Title mode - ",err)
@@ -73,7 +75,7 @@ module.exports = {
     },
     'AMAZON.YesIntent':function(){//Utterance yes
         try{    
-            if(this.attributes['PrevRequest'] == 'ReadTitle'){
+            if(this.attributes['PrevRequest'] == 'ConfirmationTitle'){
                 //let pattern = this.attributes['ActualPattern'];
                 //let indice = this.attributes['ActualIndex'];
                 //let contenido = this.attributes['Contenidos'][indice].content;
@@ -81,7 +83,7 @@ module.exports = {
                 //console.log("title mode yes intent content", content);
                 // this.attributes['NextState'] = content.sendNextRequest(contenido);
                 //this.attributes['ContentsToRead'][indice] = content;
-                this.emitWithState('ConfirmationProcess');
+                this.emitWithState('ReadTitle');
 
             }else{
                 //console.log("Intent incorrecto - Yes Title mode")
@@ -122,16 +124,14 @@ module.exports = {
             this.attributes['OPTIONS'] = (this.event.request.locale == "es-ES") ? ['siguiente'] : ['next']      
             var currentIndex = this.attributes['ActualIndex']
             if(currentIndex == (this.attributes['Contenidos'].length - 1) ){//Si leyó toda la lista 
-                this.emit(':tell','No hay mas informacion del clima')
-
-                /*if(this.attributes['PrevState'] == "categoryMode"){
+                if(this.attributes['PrevState'] == "categoryMode"){
                     this.handler.state = 'categoryMode'
                     this.emitWithState('CategoriesIntent')
                 }
                 else{
                     this.handler.state = 'flowMode'
                     this.emitWithState('ReadContents')
-                }*/
+                }
             }
             else{
                 if( this.attributes['Contenidos'].length > this.attributes['ContentsToRead'].length ){ //Si todavia quedan contenidos por leer, va a recuperar los que obtuvo en paralelo
@@ -145,18 +145,15 @@ module.exports = {
             }
         }
     },
-    'ReturnMenu':function(){ 
-        this.emit(':tell','Ok. Esa fue la informacion del clima')
-
-        //Utterance : Back to start menu
-        /*if(this.attributes['PrevState'] == "categoryMode"){
+    'ReturnMenu':function(){ //Utterance : Back to start menu
+        if(this.attributes['PrevState'] == "categoryMode"){
             this.handler.state = 'categoryMode'
             this.emitWithState('CategoriesIntent')
         }
         else{
             this.handler.state = 'flowMode'
             this.emitWithState('ReadContents')
-        }*/
+        }
     },
     'IncorrectIntent':function(){ //Poner bien el mensaje
         console.log("--entra al incorrect")

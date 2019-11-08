@@ -169,7 +169,7 @@ const languageStrings = {
             'XPATH_CHANGED':"El contenido no esta disponible porque la ruta al recurso en la pagina {{url}} ha cambiado. Indica siguiente para continuar ",
             'XPATH_CHANGED_LAST':'Este es el ultimo contenido en el grupo.<break time="500ms"/> El contenido no esta disponible porque la ruta al recurso en la pagina {{url}} ha cambiado. Indica siguiente para continuar ',
             'CONTENTS_NOT_READY':"El contenido del sitio {{url}} todavía no se encuentra disponible. Por favor, di intentar de nuevo para continuar ",
-            'CONTENTS_READY_PATTERN':'Tu listado de noticias esta listo. Quieres escuchar los titulos?',//'Has escogido el patron para {{pattern}}.<break time="300ms"/> Quieres escuchar el listado de titulos?',
+            'CONTENTS_READY_PATTERN':'Has escogido el patron para {{pattern}}.<break time="300ms"/> Quieres escuchar el listado de titulos?',
             'NEXT_READ':'Los datos se obtienen del sitio {{url}}. <break time="500ms"/> Ahora en La Plata tenemos una temperatura de {{title}} grados. Quieres obtener mas informacion?',
             'PREV_METAINFO':'Este es el ultimo contenido. '
         }

@@ -58,7 +58,10 @@ module.exports = {
         //console.log("Pattern ",pattern,this.event.request.locale)
         index.setAttributes(this,content,this.attributes['ActualIndex'])//res.json()={contenido,host,title,intro}
         .then(() =>{
-            myThis.emitWithState('ReadTitle')  
+            myThis.emitWithState(
+                this.t('CONTENTS_READY_PATTERN',{pattern:pattern}),
+                this.t('CONTENTS_READY_PATTERN',{pattern:pattern})
+            )    
         })
         .catch(err =>{
             //console.log("Error Confirmation Content mode - ",err)
@@ -78,7 +81,7 @@ module.exports = {
     },
     'ConfirmationProcess':function(){ //Next utterance
         console.log("Siguiente Content - ",this.attributes['PrevRequest'])
-        if(this.attributes['PrevRequest'] != 'ProcessIntro' ){
+        if(this.attributes['PrevRequest'] != 'ReadTitle' ){
             this.emitWithState('IncorrectIntent');
         }
         else{
@@ -87,8 +90,6 @@ module.exports = {
             //console.log("---Entro al next ",currentIndex,this.attributes['ContentsToRead'].length,this.attributes['Contenidos'])
 
             if(currentIndex == (this.attributes['Contenidos'].length - 1) ){//Si leyó toda la lista 
-                this.emit(':tell','No quedan mas noticias. Ese fue el resumen de noticias del dia.')
-                /*console.log("no hay mas noticias")
                 if(this.attributes['PrevState'] == "categoryMode"){
                     this.handler.state = 'categoryMode'
                     this.emitWithState('CategoriesIntent')
@@ -96,7 +97,7 @@ module.exports = {
                 else{
                     this.handler.state = 'flowMode'
                     this.emitWithState('ReadContents')
-                }*/
+                }
             }
             else{ 
                 if( this.attributes['Contenidos'].length > this.attributes['ContentsToRead'].length ){ //Si todavia quedan contenidos por leer, va a recuperar los que obtuvo en paralelo
@@ -164,21 +165,18 @@ module.exports = {
     'AMAZON.YesIntent':function(){//Utterance yes
         console.log("--Entra al yes Content mode - ",(this.attributes['Contenidos'].length - 1),this.attributes['ActualIndex'])
         try{
-            var mge = ""    
             if(this.attributes['PrevRequest'] == 'Confirmation' || this.attributes['PrevRequest'] == 'Categories'){
                 //let pattern = this.attributes['ActualPattern']
                 //let indice = this.attributes['ActualIndex']
                 this.emitWithState('ReadTitle')
 
             }else{
-                if(this.attributes['PrevRequest'] != 'ReadTitle'){
+                if(this.attributes['PrevRequest'] != 'OkIntent'){
                     //console.log("Intent incorrecto - Yes Content mode")
                     this.emitWithState('IncorrectIntent');
                 }else{
                     this.handler.state = 'introMode'
-                    if((this.attributes['Contenidos'].length - 1) > this.attributes['ActualIndex'] )
-                        mge = "Indica siguiente para avanzar a la siguiente noticia"
-                    this.emitWithState('ProcessIntro', this.attributes['Intro'], mge);
+                    this.emitWithState('ProcessIntro', this.attributes['Intro']);
                 }
             }
         }catch(err){
@@ -191,11 +189,11 @@ module.exports = {
         if(this.attributes['PrevRequest'] == 'Confirmation'){
             this.emitWithState('ReturnMenu');
         }else{
-            if(this.attributes['PrevRequest'] != 'ReadTitle'){
+            if(this.attributes['PrevRequest'] != 'OkIntent'){
                 //console.log("entra al no")
                 this.emitWithState('IncorrectIntent');
             }else{
-                this.attributes['PrevRequest'] = 'ProcessIntro'
+                this.attributes['PrevRequest'] = 'ReadTitle'
                 this.emitWithState('ConfirmationProcess');
             }
         }

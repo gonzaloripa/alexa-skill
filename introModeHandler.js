@@ -13,9 +13,9 @@ module.exports = {
     },
     'ProcessIntro':function(intro,mge){
         console.log("--Entra al process Intro mode - ",intro)
-        this.attributes['PrevRequest'] = "ProcessIntro"
+        this.attributes['PrevRequest'] = "ReadTitle"
         this.attributes['OPTIONS'] = (this.event.request.locale == "es-ES") ? ['ok','siguiente'] : ['ok','next']
-        this.emit(':ask',this.t('READ_INTRO',{intro:intro, mge:mge})) 
+        this.emit(':ask',this.t('READ_INTRO',{intro:intro})) 
     },
     'Logout': function(){
         this.handler.state = 'validationMode';
