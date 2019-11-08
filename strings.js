@@ -154,8 +154,7 @@ const languageStrings = {
             'READ_OPTIONS':'Puedes decir {{options}}',
             'CONECTOR':' o ',
             'SEARCH_MSG':'Estamos buscando en el sistema',
-            'READ_TITLE':'{{metainfo}} <break time="400ms"/> {{title}} <break time="500ms"/> es de {{url}} .<break time="500ms"/> Quieres escuchar una introduccion? ', //Puede cambiar el mensaje             
-            'READ_TITLE_2':'{{metainfo}} <break time="500ms"/> {{title}} grados', //Puede cambiar el mensaje             
+            'READ_TITLE':'<break time="400ms"/> {{metainfo}} <break time="500ms"/> {{title}} <break time="500ms"/> es de: {{url}} ',
             'READ_OP':'Quieres escuchar tus grupos de contenidos <break time="300ms"/> o los contenidos filtrados por categorias?',
             'REPROMPT_TEXT':"Que quieres hacer ahora?",
             'CONFIRM_SLOT':"Quieres registrarte con el nombre {{user}}?",
@@ -170,7 +169,7 @@ const languageStrings = {
             'XPATH_CHANGED_LAST':'Este es el ultimo contenido en el grupo.<break time="500ms"/> El contenido no esta disponible porque la ruta al recurso en la pagina {{url}} ha cambiado. Indica siguiente para continuar ',
             'CONTENTS_NOT_READY':"El contenido del sitio {{url}} todavía no se encuentra disponible. Por favor, di intentar de nuevo para continuar ",
             'CONTENTS_READY_PATTERN':'Has escogido el patron para {{pattern}}.<break time="300ms"/> Quieres escuchar el listado de titulos?',
-            'NEXT_READ':'Los datos se obtienen del sitio {{url}}. <break time="500ms"/> Ahora en La Plata tenemos una temperatura de {{title}} grados. Quieres obtener mas informacion?',
+            'NEXT_READ':'Indica siguiente para pasar al siguiente titulo <break time="400ms"/> {{Metainfo}} <break time="500ms"/> {{title}} <break time="500ms"/> es de: {{url}}',
             'PREV_METAINFO':'Este es el ultimo contenido. '
         }
     }
