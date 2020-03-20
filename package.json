@@ -23,9 +23,12 @@
   "homepage": "https://github.com/alexa/skill-sample-nodejs-hello-world#readme",
   "dependencies": {
     "alexa-sdk": "^1.0.0",
+    "async": "^3.2.0",
+    "aws-sdk": "^2.125.0",
+    "axios": "^0.19.2",
+    "node-fetch": "^2.6.0",
     "request": "^2.83.0",
     "xmldom": "^0.1.27",
-    "xpath": "^0.0.24",
-    "aws-sdk":"^2.125.0"
+    "xpath": "^0.0.24"
   }
 }

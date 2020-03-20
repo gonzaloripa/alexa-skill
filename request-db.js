@@ -42,7 +42,7 @@ const getConjuntos = async(loggedName) => {
 //request to get a username from database
 const busqueda_usuario = (loggedName) => {
   return new Promise((resolve,reject) => {
-    const result = fetch('https://alexa-apirest.herokuapp.com/users/'+loggedName) //+user_id+'/'
+    const result = fetch('https://alexa-apirest.herokuapp.com/users/getUser/'+loggedName) //+user_id+'/'
     .then(res => res.json())
     .then(body => {
       console.log(body)
